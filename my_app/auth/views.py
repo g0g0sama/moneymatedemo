@@ -5,15 +5,16 @@ from flask import request, render_template, flash, redirect, url_for, \
 from flask_login import current_user, login_user, logout_user, \
     login_required
 from wtforms import PasswordField
-from my_app import db, login_manager, admin_login_manager
+from my_app import db, login_manager, admin_login_manager, app, ALLOWED_EXTENSIONS
 from flask_admin import BaseView, expose, AdminIndexView
 from flask_admin.form import rules
 from flask_admin.contrib.sqla import ModelView
 from flask_admin.actions import ActionsMixin
-from my_app.auth.models import User, AdminUser, RegistrationForm, LoginForm, AdminLoginForm, \
+from my_app.auth.models import User, AdminUser, Personal_info,Authfiles, RegistrationForm, LoginForm, AdminLoginForm, \
     AdminUserCreateForm, AdminUserUpdateForm, generate_password_hash, \
     CKTextAreaField
-
+from werkzeug.utils import secure_filename
+import os
 auth = Blueprint('auth', __name__)
 
 
@@ -46,6 +47,8 @@ def home():
     return render_template('home.html')
 
 
+
+
 @auth.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
@@ -57,7 +60,9 @@ def register():
     if form.validate_on_submit():
         national_identity_number = request.form.get('national_identity_number')
         phone_number = request.form.get('phone_number')
-        email = request.form.get('email')
+        firstname = request.form.get('firstname')
+        lastname = request.form.get('lastname')
+        birthyear = request.form.get('birthyear')
         existing_phone_number = User.query.filter_by(phone_number=phone_number).first()
         password = request.form.get('password')
         if existing_phone_number:
@@ -66,7 +71,7 @@ def register():
                 'warning'
             )
             return render_template('register.html', form=form)
-        user = User(national_identity_number, phone_number, email, password)
+        user = User(national_identity_number=national_identity_number, phone_number=phone_number, birthyear=birthyear, firstname=firstname, lastname=lastname, password =password)
         db.session.add(user)
         db.session.commit()
         flash('You are now registered. Please login.', 'success')
@@ -153,7 +158,8 @@ def home_admin():
 @admin_login_required
 def users_list_admin():
     users = User.query.all()
-    return render_template('users-list-admin.html', users=users)
+    personal_infos = Personal_info.query.all()
+    return render_template('users-list-admin.html', users=users, personal_infos=personal_infos)
 
 
 
@@ -297,3 +303,35 @@ class UserAdminView(ModelView, ActionsMixin):
             flash('You are not allowed to delete users.', 'warning')
             return False
         return True
+
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@auth.route('/file_upload', methods=['GET', 'POST'])
+@login_required
+def upload_file():
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        file = request.files['file']
+        # If the user does not select a file, the browser submits an
+        # empty file without a filename.
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            pepo = os.path.join(app.config['UPLOAD_FOLDER'], f"{current_user.id}/")
+            f = os.makedirs(pepo, exist_ok=True)
+            file.save(os.path.join(pepo, filename))
+
+            user_file = Authfiles(id_front_file= pepo, user_id=current_user.id, id_back_file=pepo)
+            db.session.add(user_file)
+            db.session.commit()
+            return  "success"
+    return render_template('file-upload.html')
+
