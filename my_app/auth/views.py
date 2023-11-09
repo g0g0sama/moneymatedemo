@@ -15,6 +15,7 @@ from my_app.auth.models import User, AdminUser, Personal_info,Authfiles, Registr
     CKTextAreaField
 from werkzeug.utils import secure_filename
 import os
+from . import mernis
 auth = Blueprint('auth', __name__)
 
 
@@ -47,27 +48,27 @@ def home():
     return render_template('home.html')
 
 
-
-
+"""
 @auth.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
         flash('Your are already logged in.', 'info')
         return redirect(url_for('auth.home'))
-
     form = RegistrationForm()
 
-    if form.validate_on_submit():
+    if form.validate_on_submit(): 
+
         national_identity_number = request.form.get('national_identity_number')
         phone_number = request.form.get('phone_number')
         firstname = request.form.get('firstname')
         lastname = request.form.get('lastname')
         birthyear = request.form.get('birthyear')
         existing_phone_number = User.query.filter_by(phone_number=phone_number).first()
+        existing_national_identity_number = User.query.filter_by(national_identity_number=national_identity_number).first()
         password = request.form.get('password')
-        if existing_phone_number:
+        if existing_phone_number or existing_national_identity_number:
             flash(
-                'This phone_number has been already taken. Try another one.',
+                'This phone number has been already taken. Try another one.',
                 'warning'
             )
             return render_template('register.html', form=form)
@@ -81,6 +82,47 @@ def register():
         flash(form.errors, 'danger')
 
     return render_template('register.html', form=form)
+"""
+
+
+
+@auth.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        flash('Your are already logged in.', 'info')
+        return redirect(url_for('auth.home'))
+    firstname = request.get_json()['firstname']
+    lastname = request.get_json()['lastname']
+    identity_number = request.get_json()['identity_number']
+    birthyear = request.get_json()['birthyear']
+    password = request.form.get_json()['password']
+    phone_number = request.form.get_json()['phone_number']
+    existing_phone_number = User.query.filter_by(phone_number=phone_number).first()
+    existing_national_identity_number = User.query.filter_by(national_identity_number=identity_number).first()
+    if existing_phone_number or existing_national_identity_number:
+        flash(
+            'This phone number has been already taken. Try another one.',
+            'warning'
+        )
+        return render_template('register.html')
+    user = User(national_identity_number=identity_number, phone_number=phone_number, birthyear=birthyear, firstname=firstname, lastname=lastname, password =password)
+    db.session.add(user)
+    db.session.commit()
+    flash('You are now registered. Please login.', 'success')
+    return redirect(url_for('auth.login'))
+    
+
+@auth.route('/mernis-check', methods=['GET', 'POST'])
+def mernis_check():
+    firstname = request.get_json()['firstname']
+    lastname = request.get_json()['lastname']
+    identity_number = request.get_json()['identity_number']
+    birthyear = request.get_json()['birthyear']
+    if mernis.mernis_check(identity_number, firstname, lastname, birthyear) == False:
+        return "false"
+    else:
+        return "true"
+
 
 
 @auth.route('/login', methods=['GET', 'POST'])
