@@ -12,7 +12,7 @@ class User(db.Model):
     phone_number = db.Column(db.String(20))
     firstname = db.Column(db.String(255))
     lastname = db.Column(db.String(20))
-    pwdhash = db.Column(db.String())
+    password = db.Column(db.String())
     personal_info = db.relationship('Personal_info', backref='user', lazy=True, uselist=False)
 
 
@@ -24,10 +24,10 @@ class User(db.Model):
         self.firstname = firstname
         self.lastname = lastname
         self.birth_year = birthyear
-        self.pwdhash = generate_password_hash(password)
+        self.password = generate_password_hash(password)
 
     def check_password(self, password):
-        return check_password_hash(self.pwdhash, password)
+        return check_password_hash(self.password, password)
     
     def is_admin(self):
         return True
@@ -55,7 +55,6 @@ class Personal_info(db.Model):
     ##national_identity = db.Column(db.enum("TC vatandaşı", "Yabancı uyruklu"), default="TC vatandaşı")
     birth_month = db.Column(db.Integer, nullable=True)
     birth_day = db.Column(db.Integer, nullable=True)
-    user_file_path = db.Column(db.String(255), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     def __init__(self,  address, country, city, 
            user_id, birth_month, birth_day, user_file_path):

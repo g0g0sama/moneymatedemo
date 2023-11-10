@@ -16,6 +16,9 @@ from my_app.auth.models import User, AdminUser, Personal_info,Authfiles, Registr
 from werkzeug.utils import secure_filename
 import os
 from . import mernis
+from flask import Response
+
+
 auth = Blueprint('auth', __name__)
 
 
@@ -95,21 +98,19 @@ def register():
     lastname = request.get_json()['lastname']
     identity_number = request.get_json()['identity_number']
     birthyear = request.get_json()['birthyear']
-    password = request.form.get_json()['password']
-    phone_number = request.form.get_json()['phone_number']
+    password = request.get_json()['password']
+    phone_number = request.get_json()['phone_number']
     existing_phone_number = User.query.filter_by(phone_number=phone_number).first()
     existing_national_identity_number = User.query.filter_by(national_identity_number=identity_number).first()
     if existing_phone_number or existing_national_identity_number:
-        flash(
-            'This phone number has been already taken. Try another one.',
-            'warning'
-        )
-        return render_template('register.html')
+
+        return "false"
+    #Response(response='This phone number has been already taken. Try another one.',status=500)
     user = User(national_identity_number=identity_number, phone_number=phone_number, birthyear=birthyear, firstname=firstname, lastname=lastname, password =password)
     db.session.add(user)
     db.session.commit()
     flash('You are now registered. Please login.', 'success')
-    return redirect(url_for('auth.login'))
+    return  "true" # Response(response='Successful.',status=200)
     
 
 @auth.route('/mernis-check', methods=['GET', 'POST'])
