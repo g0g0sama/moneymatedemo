@@ -132,25 +132,20 @@ def login():
         flash('You are already logged in.', 'info')
         return redirect(url_for('auth.home'))
 
-    form = LoginForm()
+    phone_number = request.get_json()['phone_number']
+    password = request.get_json()['password']
+    
+    existing_user = User.query.filter_by(phone_number=phone_number).first()
 
-    if form.validate_on_submit():
-        phone_number = request.form.get('phone_number')
-        password = request.form.get('password')
-        existing_user = User.query.filter_by(phone_number=phone_number).first()
+    if not (existing_user):
+        flash('Invalid phone number or password. Please try again.', 'danger')
+        return "false"
+    
 
-        if not (existing_user and existing_user.check_password(password)):
-            flash('Invalid phone number or password. Please try again.', 'danger')
-            return render_template('login.html', form=form)
 
-        login_user(existing_user)
-        flash('You have successfully logged in.', 'success')
-        return redirect(url_for('auth.home'))
+    login_user(existing_user)
+    return "true"
 
-    if form.errors:
-        flash(form.errors, 'danger')
-
-    return render_template('login.html', form=form)
 
 
 @auth.route('/logout')
