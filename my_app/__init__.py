@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_admin import Admin
 from os.path import join, dirname, realpath
+from flask_jwt_extended import JWTManager
 
 
 
@@ -14,7 +15,8 @@ UPLOAD_FOLDER = join(dirname(realpath(__file__)), 'static/uploads/')
 ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
 app.config['MAX_CONTENT_LENGTH'] = 3 * 1000 * 1000
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
+app.config["JWT_SECRET_KEY"] = "super-secret"  # Change this!
+jwt = JWTManager(app)
 
 db = SQLAlchemy(app)
 

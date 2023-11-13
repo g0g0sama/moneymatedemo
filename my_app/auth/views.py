@@ -19,7 +19,9 @@ from . import mernis
 from .auth_utils import check_device
 from flask import Response
 
-
+from flask_jwt_extended import create_access_token
+from flask_jwt_extended import get_jwt_identity
+from flask_jwt_extended import jwt_required
 
 auth = Blueprint('auth', __name__)
 
@@ -148,10 +150,29 @@ def login():
         login_user(existing_user )
         return redirect(url_for('auth.home'))
 
+@auth.route('/jwtlogin', methods=['GET', 'POST'])
+def jwtlogin():
+    identity_number = request.get_json()['identity_number']
+    password = request.get_json()['password']
+    existing_user = User.query.filter_by(national_identity_number=identity_number).first()
+    user_agent = check_device()
+    if not (existing_user and existing_user.password == password):
+        return "false", 400
     
+    if user_agent == "mobile":
+        access_token = create_access_token(identity=identity_number)
+        return jsonify(access_token=access_token)
+
+    else:
+        access_token = create_access_token(identity=identity_number)
+        return jsonify(access_token=access_token)  
     
-    
-    
+@auth.route("/protected", methods=["GET"])
+@jwt_required()
+def protected():
+    # Access the identity of the current user with get_jwt_identity
+    current_user = get_jwt_identity()
+    return jsonify(logged_in_as=current_user), 200
    
 
 
