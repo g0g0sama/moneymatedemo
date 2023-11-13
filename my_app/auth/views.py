@@ -1,7 +1,7 @@
 from functools import wraps
 from werkzeug.security import generate_password_hash
 from flask import request, render_template, flash, redirect, url_for, \
-    session, Blueprint, g, abort
+    session, Blueprint, g, abort, jsonify
 from flask_login import current_user, login_user, logout_user, \
     login_required
 from wtforms import PasswordField
@@ -16,7 +16,9 @@ from my_app.auth.models import User, AdminUser, Personal_info,Authfiles, Registr
 from werkzeug.utils import secure_filename
 import os
 from . import mernis
+from .auth_utils import check_device
 from flask import Response
+
 
 
 auth = Blueprint('auth', __name__)
@@ -93,7 +95,6 @@ def register():
 def register():
     if current_user.is_authenticated:
         flash('Your are already logged in.', 'info')
-        return redirect(url_for('auth.home'))
     firstname = request.get_json()['firstname']
     lastname = request.get_json()['lastname']
     identity_number = request.get_json()['identity_number']
@@ -129,22 +130,29 @@ def mernis_check():
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        flash('You are already logged in.', 'info')
+        return "true", 200
+
+    identity_number = request.get_json()['identity_number']
+    password = request.get_json()['password']
+    print(identity_number)
+    existing_user = User.query.filter_by(national_identity_number=identity_number).first()
+    user_agent = check_device()
+    if not (existing_user and existing_user.password == password):
+        return "false", 400
+    
+    if user_agent == "mobile":
+        login_user(existing_user)
+
+        return {"user_id":existing_user.id, "firstname":existing_user.firstname, "lastname": existing_user.lastname, "identity_number":existing_user.national_identity_number, "phone_number": existing_user.phone_number}, 200
+    else:
+        login_user(existing_user )
         return redirect(url_for('auth.home'))
 
-    phone_number = request.get_json()['phone_number']
-    password = request.get_json()['password']
     
-    existing_user = User.query.filter_by(phone_number=phone_number).first()
-
-    if not (existing_user):
-        flash('Invalid phone number or password. Please try again.', 'danger')
-        return "false"
     
-
-
-    login_user(existing_user)
-    return "true"
+    
+    
+   
 
 
 
@@ -372,4 +380,5 @@ def upload_file():
             db.session.commit()
             return  "success"
     return render_template('file-upload.html')
+
 
