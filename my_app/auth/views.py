@@ -103,13 +103,15 @@ def register():
     birthyear = request.get_json()['birthyear']
     password = request.get_json()['password']
     phone_number = request.get_json()['phone_number']
+    device_info = request.get_json()['device_info']
     existing_phone_number = User.query.filter_by(phone_number=phone_number).first()
     existing_national_identity_number = User.query.filter_by(national_identity_number=identity_number).first()
     if existing_phone_number or existing_national_identity_number:
 
         return "false"
     #Response(response='This phone number has been already taken. Try another one.',status=500)
-    user = User(national_identity_number=identity_number, phone_number=phone_number, birthyear=birthyear, firstname=firstname, lastname=lastname, password =password)
+    user = User(national_identity_number=identity_number, phone_number=phone_number, birthyear=birthyear, firstname=firstname, 
+                lastname=lastname, password =password, device_info=device_info)
     db.session.add(user)
     db.session.commit()
     flash('You are now registered. Please login.', 'success')
@@ -136,10 +138,14 @@ def login():
 
     identity_number = request.get_json()['identity_number']
     password = request.get_json()['password']
-    print(identity_number)
+    device_info = request.get_json()['device_info']
     existing_user = User.query.filter_by(national_identity_number=identity_number).first()
     user_agent = check_device()
-    if not (existing_user and existing_user.password == password):
+    if device_info != existing_user.device_info:
+        print("why1")
+        return "false", 400
+    if not (existing_user and existing_user.check_password(password)):
+        print("why2")
         return "false", 400
     
     if user_agent == "mobile":

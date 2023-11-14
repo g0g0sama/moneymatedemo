@@ -13,18 +13,21 @@ class User(db.Model):
     firstname = db.Column(db.String(255))
     lastname = db.Column(db.String(20))
     password = db.Column(db.String())
+    device_info = db.Column(db.String(255))
     personal_info = db.relationship('Personal_info', backref='user', lazy=True, uselist=False)
 
 
 
 
-    def __init__(self,national_identity_number, phone_number, firstname, lastname, birthyear, password):
+    def __init__(self,national_identity_number, phone_number, firstname,
+                  lastname, birthyear, password, device_info):
         self.national_identity_number = national_identity_number
         self.phone_number = phone_number
         self.firstname = firstname
         self.lastname = lastname
         self.birth_year = birthyear
         self.password = generate_password_hash(password)
+        self.device_info = device_info
 
     def check_password(self, password):
         return check_password_hash(self.password, password)
