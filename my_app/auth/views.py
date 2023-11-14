@@ -5,7 +5,7 @@ from flask import request, render_template, flash, redirect, url_for, \
 from flask_login import current_user, login_user, logout_user, \
     login_required
 from wtforms import PasswordField
-from my_app import db, login_manager, admin_login_manager, app, ALLOWED_EXTENSIONS
+from my_app import db, login_manager, admin_login_manager, app, ALLOWED_EXTENSIONS, jwt, jwt_redis_blocklist, ACCESS_EXPIRES
 from flask_admin import BaseView, expose, AdminIndexView
 from flask_admin.form import rules
 from flask_admin.contrib.sqla import ModelView
@@ -22,6 +22,9 @@ from flask import Response
 from flask_jwt_extended import create_access_token
 from flask_jwt_extended import get_jwt_identity
 from flask_jwt_extended import jwt_required
+from flask_jwt_extended import create_refresh_token
+from flask_jwt_extended import get_jwt
+import datetime
 
 auth = Blueprint('auth', __name__)
 
@@ -155,6 +158,13 @@ def login():
     else:
         login_user(existing_user )
         return redirect(url_for('auth.home'))
+    
+@jwt.token_in_blocklist_loader
+def check_if_token_is_revoked(jwt_header, jwt_payload: dict):
+    jti = jwt_payload["jti"]
+    token_in_redis = jwt_redis_blocklist.get(jti)
+    return token_in_redis is not None
+
 
 @auth.route('/jwtlogin', methods=['GET', 'POST'])
 def jwtlogin():
@@ -162,26 +172,46 @@ def jwtlogin():
     password = request.get_json()['password']
     existing_user = User.query.filter_by(national_identity_number=identity_number).first()
     user_agent = check_device()
-    if not (existing_user and existing_user.password == password):
+    if not (existing_user and existing_user.check_password(password)):
         return "false", 400
     
     if user_agent == "mobile":
-        access_token = create_access_token(identity=identity_number)
-        return jsonify(access_token=access_token)
+        access_token = create_access_token(identity=identity_number, fresh=datetime.timedelta(minutes=5))
+        refresh_token = create_refresh_token(identity=identity_number)
+        return jsonify(access_token=access_token, refresh_token=refresh_token)
 
     else:
-        access_token = create_access_token(identity=identity_number)
-        return jsonify(access_token=access_token)  
+        access_token = create_access_token(identity=identity_number, fresh=datetime.timedelta(minutes=5))
+        refresh_token = create_refresh_token(identity=identity_number)
+        return jsonify(access_token=access_token, refresh_token=refresh_token) 
+    
+
+@auth.route("/refresh", methods=["POST"])
+@jwt_required(refresh=True)
+def refresh():
+    identity = get_jwt_identity()
+    access_token = create_access_token(identity=identity, fresh=False)
+    return jsonify(access_token=access_token)
     
 @auth.route("/protected", methods=["GET"])
 @jwt_required()
 def protected():
     # Access the identity of the current user with get_jwt_identity
     current_user = get_jwt_identity()
-    return jsonify(logged_in_as=current_user), 200
+    existing_user = User.query.filter_by(national_identity_number=current_user).first()
+    return jsonify({"user_id":existing_user.id, "firstname":existing_user.firstname, "lastname": existing_user.lastname, "identity_number":existing_user.national_identity_number, "phone_number": existing_user.phone_number}), 200
    
 
+@app.route("/jwtlogout", methods=["DELETE"])
+@jwt_required(verify_type=False)
+def logout():
+    token = get_jwt()
+    jti = token["jti"]
+    ttype = token["type"]
+    jwt_redis_blocklist.set(jti, "", ex=ACCESS_EXPIRES)
 
+    # Returns "Access token revoked" or "Refresh token revoked"
+    return jsonify(msg=f"{ttype.capitalize()} token successfully revoked")
 
 @auth.route('/logout')
 @login_required

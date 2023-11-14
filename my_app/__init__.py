@@ -4,8 +4,9 @@ from flask_login import LoginManager
 from flask_admin import Admin
 from os.path import join, dirname, realpath
 from flask_jwt_extended import JWTManager
-
-
+from datetime import timedelta
+import redis
+ACCESS_EXPIRES = timedelta(minutes=5)
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://goksucan:123456789g@127.0.0.1/fastapi'
@@ -16,6 +17,15 @@ ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
 app.config['MAX_CONTENT_LENGTH'] = 3 * 1000 * 1000
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config["JWT_SECRET_KEY"] = "super-secret"  # Change this!
+
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=5)
+app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(minutes=5)
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = ACCESS_EXPIRES
+
+jwt_redis_blocklist = redis.StrictRedis(
+    host="localhost", port=6379, db=0, decode_responses=True
+)
+
 jwt = JWTManager(app)
 
 db = SQLAlchemy(app)
