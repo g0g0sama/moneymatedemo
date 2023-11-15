@@ -5,7 +5,7 @@ from flask import request, render_template, flash, redirect, url_for, \
 from flask_login import current_user, login_user, logout_user, \
     login_required
 from wtforms import PasswordField
-from my_app import db, login_manager, admin_login_manager, app, ALLOWED_EXTENSIONS, jwt, jwt_redis_blocklist, ACCESS_EXPIRES
+from my_app import db, login_manager, admin_login_manager, app, ALLOWED_EXTENSIONS, jwt, jwt_redis_blocklist, ACCESS_EXPIRES, api
 from flask_admin import BaseView, expose, AdminIndexView
 from flask_admin.form import rules
 from flask_admin.contrib.sqla import ModelView
@@ -25,8 +25,9 @@ from flask_jwt_extended import jwt_required
 from flask_jwt_extended import create_refresh_token
 from flask_jwt_extended import get_jwt
 import datetime
-
+from flask_restx import Resource, Api, fields
 auth = Blueprint('auth', __name__)
+
 
 
 def admin_login_required(func):
@@ -439,3 +440,52 @@ def upload_file():
     return render_template('file-upload.html')
 
 
+
+@api.route('/hello')
+class HelloWorld(Resource):
+    def get(self):
+        return {'hello': 'world'}
+
+
+
+resource_fields = api.model('login_fields', {
+    'identity_number': fields.String,
+    "password": fields.String,
+})
+@api.route('/jwtlogin1')
+class Jwtlogin(Resource):
+    @api.expect(resource_fields)
+    def post(self):
+        identity_number = request.get_json()['identity_number']
+        password = request.get_json()['password']
+        existing_user = User.query.filter_by(national_identity_number=identity_number).first()
+        user_agent = check_device()
+        if not (existing_user and existing_user.check_password(password)):
+            return "false", 400
+        
+        if user_agent == "mobile":
+            access_token = create_access_token(identity=identity_number, fresh=datetime.timedelta(minutes=5))
+            refresh_token = create_refresh_token(identity=identity_number)
+            return jsonify(access_token=access_token, refresh_token=refresh_token)
+
+        else:
+            access_token = create_access_token(identity=identity_number, fresh=datetime.timedelta(minutes=5))
+            refresh_token = create_refresh_token(identity=identity_number)
+            return jsonify(access_token=access_token, refresh_token=refresh_token) 
+        
+
+
+auth_resource_fields = api.model('auth_fields', {
+    'access_token': fields.String,
+})
+
+@api.route("/userhome")
+
+class Protected(Resource):    
+    @jwt_required()
+    def get(self):
+        # Access the identity of the current user with get_jwt_identity
+        current_user = get_jwt_identity()
+        existing_user = User.query.filter_by(national_identity_number=current_user).first()
+        return jsonify({"user_id":existing_user.id, "firstname":existing_user.firstname, "lastname": existing_user.lastname, "identity_number":existing_user.national_identity_number, "phone_number": existing_user.phone_number})
+    

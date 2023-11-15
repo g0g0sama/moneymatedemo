@@ -6,11 +6,24 @@ from os.path import join, dirname, realpath
 from flask_jwt_extended import JWTManager
 from datetime import timedelta
 import redis
+from flask_restx import  Api
+
+authorizations = {
+    'apikey': {
+        'type': 'apiKey',
+        'in': 'header',
+        'name': 'Authorization'
+
+    }
+}
+
 ACCESS_EXPIRES = timedelta(minutes=5)
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://goksucan:123456789g@127.0.0.1/fastapi'
 app.config['WTF_CSRF_SECRET_KEY'] = 'random key for form'
+
+api = Api(app, authorizations=authorizations, security="apikey")
 
 UPLOAD_FOLDER = join(dirname(realpath(__file__)), 'static/uploads/')
 ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
