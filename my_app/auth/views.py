@@ -475,8 +475,8 @@ class Jwtlogin(Resource):
         
 
 
-auth_resource_fields = api.model('auth_fields', {
-    'access_token': fields.String,
+auth_resource_fields = api.model('user_fields', {
+    'id': fields.Integer,
 })
 
 @api.route("/userhome")
@@ -488,4 +488,16 @@ class Protected(Resource):
         current_user = get_jwt_identity()
         existing_user = User.query.filter_by(national_identity_number=current_user).first()
         return jsonify({"user_id":existing_user.id, "firstname":existing_user.firstname, "lastname": existing_user.lastname, "identity_number":existing_user.national_identity_number, "phone_number": existing_user.phone_number})
-    
+
+
+@api.route("/users/{id}")
+
+class Users(Resource):
+    @api.expect(auth_resource_fields)
+    def get(self, id):
+        
+        id = request.get_json()['id']
+        existing_user = User.query.filter_by(id=id).first()
+        if not existing_user:
+            return "false"
+        return jsonify({"user_id":existing_user.id, "firstname":existing_user.firstname, "lastname": existing_user.lastname, "identity_number":existing_user.national_identity_number, "phone_number": existing_user.phone_number})
