@@ -16,7 +16,7 @@ from my_app.auth.models import User, AdminUser, Personal_info,Authfiles, Registr
 from werkzeug.utils import secure_filename
 import os
 from . import mernis
-from .auth_utils import check_device
+from .auth_utils import check_device, email_verification
 from flask import Response
 
 from flask_jwt_extended import create_access_token
@@ -24,6 +24,7 @@ from flask_jwt_extended import get_jwt_identity
 from flask_jwt_extended import jwt_required
 from flask_jwt_extended import create_refresh_token
 from flask_jwt_extended import get_jwt
+from flask_jwt_extended import decode_token
 import datetime
 from flask_restx import Resource, Api, fields
 auth = Blueprint('auth', __name__)
@@ -179,12 +180,14 @@ def jwtlogin():
     if user_agent == "mobile":
         access_token = create_access_token(identity=identity_number, fresh=datetime.timedelta(minutes=5))
         refresh_token = create_refresh_token(identity=identity_number)
-        return jsonify(access_token=access_token, refresh_token=refresh_token)
+        return jsonify( {"user_id":existing_user.id, "firstname":existing_user.firstname, "lastname": existing_user.lastname, "identity_number":existing_user.national_identity_number, "phone_number": existing_user.phone_number,
+               "access_token": access_token, "refresh_token":refresh_token})
 
     else:
         access_token = create_access_token(identity=identity_number, fresh=datetime.timedelta(minutes=5))
         refresh_token = create_refresh_token(identity=identity_number)
-        return jsonify(access_token=access_token, refresh_token=refresh_token) 
+        return jsonify( {"user_id":existing_user.id, "firstname":existing_user.firstname, "lastname": existing_user.lastname, "identity_number":existing_user.national_identity_number, "phone_number": existing_user.phone_number,
+               "access_token": access_token, "refresh_token":refresh_token}) 
     
 
 @auth.route("/refresh", methods=["POST"])
@@ -452,6 +455,7 @@ resource_fields = api.model('login_fields', {
     'identity_number': fields.String,
     "password": fields.String,
 })
+
 @api.route('/jwtlogin1')
 class Jwtlogin(Resource):
     @api.expect(resource_fields)
@@ -490,14 +494,38 @@ class Protected(Resource):
         return jsonify({"user_id":existing_user.id, "firstname":existing_user.firstname, "lastname": existing_user.lastname, "identity_number":existing_user.national_identity_number, "phone_number": existing_user.phone_number})
 
 
-@api.route("/users/{id}")
+@api.route("/users/<int:id>")
 
 class Users(Resource):
-    @api.expect(auth_resource_fields)
     def get(self, id):
-        
-        id = request.get_json()['id']
         existing_user = User.query.filter_by(id=id).first()
         if not existing_user:
             return "false"
         return jsonify({"user_id":existing_user.id, "firstname":existing_user.firstname, "lastname": existing_user.lastname, "identity_number":existing_user.national_identity_number, "phone_number": existing_user.phone_number})
+
+
+@api.route("/gen_confirmation")
+class Gen_email_confirmation(Resource):
+    @jwt_required()
+    def get(self):
+        current_user = get_jwt_identity()
+        access_token = create_access_token(identity=current_user, additional_claims={"confirm": True}, expires_delta=datetime.timedelta(seconds=3600))
+
+        ##email_verification("goksucanerkoc@gmail.com", access_token)
+        print(access_token)
+        return jsonify({"message": "confirmation token sent"})
+
+
+@api.route("/verify-email/<token>")
+class Emailverification(Resource):
+    @jwt_required()
+    def get(self, token):
+        user_identity = get_jwt_identity()
+        current_user = User.query.filter_by(national_identity_number=user_identity).first()
+        decoded_token = decode_token(token)
+        
+        if decoded_token['sub'] == user_identity and decoded_token['confirm']:
+            return jsonify({"message": "user confirmed"})
+        return jsonify({"message": "invalid confirmation token"})
+
+
