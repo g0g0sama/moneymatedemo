@@ -35,6 +35,8 @@ app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=5)
 app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(minutes=5)
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = ACCESS_EXPIRES
 
+app.config["SECRET_KEY"] = "Moneymate Mail Verification"
+
 jwt_redis_blocklist = redis.StrictRedis(
     host="localhost", port=6379, db=0, decode_responses=True
 )

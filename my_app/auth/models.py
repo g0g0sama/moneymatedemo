@@ -14,13 +14,16 @@ class User(db.Model):
     lastname = db.Column(db.String(20))
     password = db.Column(db.String())
     device_info = db.Column(db.String(255))
+    """email = db.Column(db.String(255))
+    phone_number_verified = db.Column(db.Boolean(), default=False)
+    email_verified = db.Column(db.Boolean(), default=False)"""
     personal_info = db.relationship('Personal_info', backref='user', lazy=True, uselist=False)
 
 
 
 
     def __init__(self,national_identity_number, phone_number, firstname,
-                  lastname, birthyear, password, device_info):
+                  lastname, birthyear, password, device_info, phone_number_verified, email_verified):
         self.national_identity_number = national_identity_number
         self.phone_number = phone_number
         self.firstname = firstname
@@ -28,6 +31,8 @@ class User(db.Model):
         self.birth_year = birthyear
         self.password = generate_password_hash(password)
         self.device_info = device_info
+        self.phone_number_verified = phone_number_verified
+        self.email_verified = email_verified
 
     def check_password(self, password):
         return check_password_hash(self.password, password)
