@@ -8,7 +8,7 @@ from my_app import db
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    national_identity_number = db.Column(db.String(11))
+    national_identity_number = db.Column(db.String(11), unique=True)
     phone_number = db.Column(db.String(20))
     firstname = db.Column(db.String(255))
     lastname = db.Column(db.String(20))
@@ -18,12 +18,12 @@ class User(db.Model):
     phone_number_verified = db.Column(db.Boolean(), default=False)
     email_verified = db.Column(db.Boolean(), default=False)"""
     personal_info = db.relationship('Personal_info', backref='user', lazy=True, uselist=False)
-
+    accounts = db.relationship('Account', backref='user', lazy=True)
 
 
 
     def __init__(self,national_identity_number, phone_number, firstname,
-                  lastname, birthyear, password, device_info, phone_number_verified, email_verified):
+                  lastname, birthyear, password, device_info):
         self.national_identity_number = national_identity_number
         self.phone_number = phone_number
         self.firstname = firstname
@@ -31,9 +31,11 @@ class User(db.Model):
         self.birth_year = birthyear
         self.password = generate_password_hash(password)
         self.device_info = device_info
-        self.phone_number_verified = phone_number_verified
-        self.email_verified = email_verified
+        """self.phone_number_verified = phone_number_verified
+        self.email_verified = email_verified"""
 
+    def __repr__(self):
+        self.id = id
     def check_password(self, password):
         return check_password_hash(self.password, password)
     
@@ -55,24 +57,7 @@ class User(db.Model):
     def get_id(self):
         return str(self.id)
 
-class Personal_info(db.Model): 
-    id = db.Column(db.Integer, primary_key=True) 
-    address = db.Column(db.Float, nullable=True)
-    country = db.Column(db.String(255), nullable =True) #find the iso codes and country list by language
-    city = db.Column(db.String(255), nullable = True) #find the cities by country
-    ##national_identity = db.Column(db.enum("TC vatandaşı", "Yabancı uyruklu"), default="TC vatandaşı")
-    birth_month = db.Column(db.Integer, nullable=True)
-    birth_day = db.Column(db.Integer, nullable=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    def __init__(self,  address, country, city, 
-           user_id, birth_month, birth_day, user_file_path):
-        self.address = address
-        self.country = country
-        self.city = city
-        self.birth_month = birth_month
-        self.birth_day = birth_day
-        self.user_file_path = user_file_path
-        self.user_id = user_id
+
 
 
 class Authfiles(db.Model): 

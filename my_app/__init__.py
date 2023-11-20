@@ -62,6 +62,9 @@ admin.add_view(views.UserAdminView(views.AdminUser, db.session))
 from my_app.auth.views import auth
 app.register_blueprint(auth)
 
+from my_app.personal_info.views import personal_info
+app.register_blueprint(personal_info)
+
 with app.app_context():
     db.create_all()
 

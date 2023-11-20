@@ -10,9 +10,11 @@ from flask_admin import BaseView, expose, AdminIndexView
 from flask_admin.form import rules
 from flask_admin.contrib.sqla import ModelView
 from flask_admin.actions import ActionsMixin
-from my_app.auth.models import User, AdminUser, Personal_info,Authfiles, RegistrationForm, LoginForm, AdminLoginForm, \
+from my_app.auth.models import User, AdminUser,Authfiles, RegistrationForm, LoginForm, AdminLoginForm, \
     AdminUserCreateForm, AdminUserUpdateForm, generate_password_hash, \
     CKTextAreaField
+
+from my_app.personal_info.models import Personal_info, Account, Account_type
 from werkzeug.utils import secure_filename
 import os
 from . import mernis
@@ -104,7 +106,7 @@ def register():
         flash('Your are already logged in.', 'info')
     firstname = request.get_json()['firstname']
     lastname = request.get_json()['lastname']
-    identity_number = request.get_json()['identity_number']
+    identity_number = request.get_json()['identityNumber']
     birthyear = request.get_json()['birthyear']
     password = request.get_json()['password']
     phone_number = request.get_json()['phone_number']
@@ -118,6 +120,10 @@ def register():
     user = User(national_identity_number=identity_number, phone_number=phone_number, birthyear=birthyear, firstname=firstname, 
                 lastname=lastname, password =password, device_info=device_info)
     db.session.add(user)
+    
+    db.session.commit()
+    personal_info = Personal_info(user_id=user.id)
+    db.session.add(personal_info)
     db.session.commit()
     flash('You are now registered. Please login.', 'success')
     return  "true" # Response(response='Successful.',status=200)
@@ -127,7 +133,7 @@ def register():
 def mernis_check():
     firstname = request.get_json()['firstname']
     lastname = request.get_json()['lastname']
-    identity_number = request.get_json()['identity_number']
+    identity_number = request.get_json()['identityNumber']
     birthyear = request.get_json()['birthyear']
     if mernis.mernis_check(identity_number, firstname, lastname, birthyear) == False:
         return "false"
@@ -529,3 +535,22 @@ class Emailverification(Resource):
         return jsonify({"message": "invalid confirmation token"})
 
 
+
+@api.route('/phone-verification')
+class HelloWorld(Resource):
+    def get(self):
+        return {'hello': 'world'}
+    
+
+
+@api.route('/id_verification')
+class HelloWorld(Resource):
+    def get(self):
+        return {'hello': 'world'}
+    
+
+
+@api.route('/hello')
+class HelloWorld(Resource):
+    def get(self):
+        return {'hello': 'world'}
