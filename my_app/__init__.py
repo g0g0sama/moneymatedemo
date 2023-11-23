@@ -65,6 +65,9 @@ app.register_blueprint(auth)
 from my_app.personal_info.views import personal_info
 app.register_blueprint(personal_info)
 
+from my_app.business.views import business
+app.register_blueprint(business)
+
 with app.app_context():
     db.create_all()
 

@@ -14,7 +14,7 @@ from my_app.auth.models import User, AdminUser,Authfiles, RegistrationForm, Logi
     AdminUserCreateForm, AdminUserUpdateForm, generate_password_hash, \
     CKTextAreaField
 
-from my_app.personal_info.models import Personal_info, Account, Account_type
+from my_app.personal_info.models import Personal_info
 from werkzeug.utils import secure_filename
 import os
 from . import mernis

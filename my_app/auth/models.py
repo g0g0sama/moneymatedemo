@@ -19,7 +19,7 @@ class User(db.Model):
     email_verified = db.Column(db.Boolean(), default=False)"""
     personal_info = db.relationship('Personal_info', backref='user', lazy=True, uselist=False)
     accounts = db.relationship('Account', backref='user', lazy=True)
-
+    is_active = db.Column(db.Boolean(), default=False)
 
 
     def __init__(self,national_identity_number, phone_number, firstname,
